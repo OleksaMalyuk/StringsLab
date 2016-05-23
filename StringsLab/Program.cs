@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace StringsLab
-{
 
-    class StringBase                            // базовый класс Строка
+namespace StringsLab
+
+{
+    class StringBase : IComparable              // базовый класс Строка
     {
         protected string value;                 // поле содержит символы строки
         public StringBase()                     // конструктор по умолчанию
@@ -47,7 +48,39 @@ namespace StringsLab
         {
             return this.value;
         }
-     }
+        virtual public int CompareTo(object obj)            // Сравнивает строку по значению с другой в алфавитном порядке
+        {
+            StringBase temp = (StringBase)obj;
+            return this.value.CompareTo(temp.value);
+        }
+        virtual public object Addition(object obj)          // Прибавляет к строке другую
+        {
+            StringBase temp = (StringBase)obj;
+            return new StringBase(this.value + temp.value);
+        }
+        virtual public object Subtraction(object obj)       // Вычитание (не имеет смысла для строк, должен быть перекрыт в классе-потомке)
+        {
+            return null;
+        }
+
+        // перегрузка операторов +- <>
+        public static StringBase operator +(StringBase s1, StringBase s2)
+        {
+            return (StringBase)s1.Addition(s2);
+        }
+        public static StringBase operator -(StringBase s1, StringBase s2)
+        {
+            return (StringBase)s1.Subtraction(s2);
+        }
+        public static bool operator >(StringBase s1, StringBase s2)
+        {
+            return s1.CompareTo(s2) > 0;
+        }
+        public static bool operator <(StringBase s1, StringBase s2)
+        {
+            return s1.CompareTo(s2) < 0;
+        }
+    }
 
     class StringDecimal : StringBase                        // производный класс "Десятичная строка" от класса "Строка"
     {
@@ -93,28 +126,83 @@ namespace StringsLab
         {
             return number_value.GetHashCode();
         }
-         public int CompareTo(StringDecimal s2)           // Сравнивает строку по значению с другой как два числа
+        override public int CompareTo(object obj)           // Сравнивает строку по значению с другой как два числа
         {
-            if (this.number_value > s2.number_value) return 1;
-            if (this.number_value < s2.number_value) return -1;
+            StringDecimal temp = (StringDecimal)obj;
+            if (this.number_value > temp.number_value) return 1;
+            if (this.number_value < temp.number_value) return -1;
             return 0;
         }
-        public StringDecimal Subtraction(StringDecimal s2)      // Арифметическое вычитание
+        override public object Addition(object obj)         // Арифметическое сложение
         {
-            return new StringDecimal(this.number_value - s2.number_value);
+            try
+            {
+                StringDecimal temp = (StringDecimal)obj;
+                return new StringDecimal(this.number_value + temp.number_value);
+            }
+            catch
+            {
+                return base.Addition(obj);                  // если не удалось сложить как числа - складываем как строки
+            }
+        }
+        override public object Subtraction(object obj)      // Арифметическое вычитание
+        {
+            try
+            {
+                StringDecimal temp = (StringDecimal)obj;
+                return new StringDecimal(this.number_value - temp.number_value);
+            }
+            catch
+            {
+                return base.Subtraction(obj);                  // если не удалось сложить как числа - складываем как строки
+            }
         }
     }
 
-
-    class Program
+    class Classl
     {
-        static void Main(string[] args)
-        {
-            StringDecimal s1 = new StringDecimal(30);
-            StringDecimal s2 = new StringDecimal("-20");
-            StringDecimal s3 = s1.Subtraction(s2);
-            Console.WriteLine("\"{0}\" - \"{1}\" = \"{2}\"", s1, s2, s3);
 
+        public static void PrintArray(string header, Array a)   // выводит массив
+        {
+            Console.WriteLine(header);
+            foreach (object x in a)
+            {
+                Console.Write("\"{0}\"\t", x);
+            }
+            Console.WriteLine();
+        }
+
+        static void Main()
+        {
+            const int n = 7;
+            StringBase[] mas = new StringBase[n];           // Создание массива объектов базового типа Строка
+
+            mas[0] = new StringDecimal(150);                // Заполнение вперемешку объектами как базового так и производного типов
+            mas[1] = new StringDecimal(" +125 ");             // тут заполняем объектами типа Десятичная строка
+            mas[2] = new StringDecimal("-25");
+            mas[3] = new StringDecimal('2');
+            mas[4] = new StringDecimal("qwerty");
+            mas[5] = new StringBase("qwerty");              // тут добавим несколько объектов типа Строка
+            mas[6] = new StringBase("abc");
+
+            Console.WriteLine("\nДемонстрация операций над строками:");
+            Console.WriteLine("\"{0}\" = \"{1}\"  \t is {2}", mas[0], mas[1], mas[0] == mas[1]);
+            Console.WriteLine("\"{0}\" != \"{1}\"  \t is {2}", mas[2], mas[4], mas[2] != mas[4]);
+            Console.WriteLine("\"{0}\" > \"{1}\"  \t is {2}", mas[0], mas[1], mas[0] > mas[1]);
+            Console.WriteLine("\"{0}\" < \"{1}\"  \t is {2}", mas[2], mas[3], mas[2] < mas[3]);
+            Console.WriteLine("\"{0}\" + \"{1}\"  \t = {2}", mas[0], mas[1], (mas[0] + mas[1]));
+            Console.WriteLine("\"{0}\" - \"{1}\"  \t = {2}", mas[0], mas[1], (mas[0] - mas[1]));
+            Console.WriteLine("\"{0}\" + \"{1}\"  \t = {2}", mas[5], mas[6], (mas[5] + mas[6]));
+            Console.WriteLine("\"{0}\" + \"{1}\"  \t = {2}", mas[0], mas[6], (mas[0] + mas[6]));
+
+            Console.WriteLine("\nДлина строки \"{0}\" = {1}", mas[1], mas[1].Length());
+            Console.WriteLine("Cтрока до очистки \"{0}\"", mas[6]);
+            mas[6].Clear();
+            Console.WriteLine("Cтрока после очистки \"{0}\"", mas[6]);
+
+            PrintArray("\nИсходный массив", mas);
+            Array.Sort(mas);                                // сортировка массива (демонстрация работы метода CompareTo)
+            PrintArray("Отсортированный массив", mas);
         }
     }
 }
